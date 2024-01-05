@@ -7,6 +7,35 @@ pub struct SpinLock<T> {
     locked: AtomicBool,
 }
 
+/// SpinLock is a simple spinlock implementation.
+/// It represents a structure that guards a value of type T with a lock.
+///
+/// It uses a "spin loop" to wait until the lock is available i.e.
+/// awaiting threads will keep looping until the lock is unlocked by the thread that is holding the lock.
+///
+/// Instead explicitly unlocking the lock,
+/// the lock instead returns a LockGuard<T> which you can dereference and access the underlying value.
+/// The lock is then unlocked when the guard is dropped.
+///
+/// # Examples
+///
+/// ```
+/// use chapter_4_spinlock::SpinLock;
+///
+/// let spinlock = SpinLock::new(0);
+/// std::thread::scope(|s| {
+///     s.spawn(|| {
+///         let mut v = spinlock.lock(); // attempts to lock
+///         *v += 1;
+///     }); // ---------------------------- guard is dropped here: lock is unlocked
+///     s.spawn(|| {
+///         let mut v = spinlock.lock(); // attempts to lock
+///         *v += 1;
+///     }); // ---------------------------- guard is dropped here: lock is unlocked
+/// });
+/// assert_eq!(*spinlock.lock(), 2);
+/// ```
+///
 impl<T> SpinLock<T> {
     pub fn new(value: T) -> Self {
         SpinLock {
@@ -54,5 +83,27 @@ impl<T> DerefMut for LockGuard<'_, T> {
 impl<'a, T> Drop for LockGuard<'a, T> {
     fn drop(&mut self) {
         self.lock.locked.store(false, Release)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_spinlock() {
+        let lock = SpinLock::new(42);
+
+        std::thread::scope(|s| {
+            for _ in 0..10 {
+                s.spawn(|| {
+                    let mut v = lock.lock();
+                    *v += 1;
+                });
+            }
+        });
+
+        let lock = lock.lock();
+        assert_eq!(*lock, 52);
     }
 }
