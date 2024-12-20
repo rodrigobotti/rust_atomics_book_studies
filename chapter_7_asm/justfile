@@ -1,0 +1,24 @@
+# lists all recipes
+default:
+	@just --list
+
+_asm_fn_target target function:
+	@echo "assembly for {{target}} of '{{function}}'"
+	@cargo asm --lib "{{function}}" --full-name --simplify --target={{target}}
+	@echo ""
+
+# emits assembly code for target aarch64-unknown-linux-musl for a function
+asm-arm64 function: (_asm_fn_target "aarch64-unknown-linux-musl" function)
+
+# emits assembly code for target x86_64-unknown-linux-musl for a function
+asm-x86-64 function: (_asm_fn_target "x86_64-unknown-linux-musl" function)
+
+alias arm := asm-arm64
+alias x86 := asm-x86-64
+
+_separator:
+	@for _ in $(seq 1 50); do printf "-"; done;
+	@printf "\n"
+
+# emits assembly code for both aarch64-unknown-linux-musl and x86_64-unknown-linux-musl targets for a function
+asm-all function: (asm-arm64 function) _separator (asm-x86-64 function)
