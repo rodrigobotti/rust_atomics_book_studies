@@ -1,3 +1,9 @@
+#![allow(unused)]
+
+pub mod cache;
+pub mod cache_line;
+pub mod weak_ordering_cpu;
+
 use std::sync::atomic::AtomicI32;
 use std::sync::atomic::Ordering::Relaxed;
 
